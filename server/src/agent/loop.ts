@@ -17,6 +17,8 @@ export interface LoopOptions {
   messages: LlmMessage[];
   tools: Tool[];
   signal: AbortSignal;
+  /** The current request, used to compress large tool results against it. */
+  query?: string;
   maxSteps: number;
   onDelta?: (text: string) => void;
   onToolCalls?: (views: ToolCallView[]) => void;
@@ -45,7 +47,7 @@ export interface LoopResult {
 export async function runLoop(o: LoopOptions): Promise<LoopResult> {
   const toolMap = new Map(o.tools.map((t) => [t.name, t]));
   const specs = o.tools.map((t) => ({ name: t.name, description: t.description, parameters: t.parameters }));
-  const ctx: ToolContext = { app: o.app, channelId: o.channelId, taskId: o.taskId, background: o.background, signal: o.signal };
+  const ctx: ToolContext = { app: o.app, channelId: o.channelId, taskId: o.taskId, background: o.background, signal: o.signal, query: o.query };
   const res: LoopResult = { text: "", lastText: "", views: [], artifactIds: [], approvalIds: [], steps: 0, model: null, end: "done" };
   let sep = false;
 

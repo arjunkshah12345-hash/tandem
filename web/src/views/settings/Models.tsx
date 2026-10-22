@@ -44,6 +44,8 @@ export function ModelsSection() {
         </Row>
       </Group>
 
+      <CompressionGroup />
+
       <div>
         <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">Providers</h3>
         <div className="space-y-2">
@@ -239,5 +241,127 @@ function AddProvider({ onAdded }: { onAdded: () => void }) {
         <Check size={14} /> Add provider
       </Button>
     </div>
+  );
+}
+
+function fmtTokens(n: number) {
+  return n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}k` : String(n);
+}
+
+/** SuperCompress: query-aware compression of large tool results via the hosted API. */
+function CompressionGroup() {
+  const { settings: s, save, flash } = useSettings();
+  const c = s.compression;
+  const [status, setStatus] = useState<Awaited<ReturnType<typeof api.compression>> | null>(null);
+  const [key, setKey] = useState("");
+  const [test, setTest] = useState<{ busy: boolean; text?: string; ok?: boolean }>({ busy: false });
+  const load = () => api.compression().then(setStatus).catch(() => {});
+  useEffect(() => {
+    void load();
+  }, []);
+
+  async function saveKey() {
+    try {
+      await api.setSecret("SUPERCOMPRESS_API_KEY", key.trim());
+      setKey("");
+      flash("SuperCompress key saved");
+      void load();
+    } catch (e) {
+      flash(errText(e), true);
+    }
+  }
+
+  async function runTest() {
+    setTest({ busy: true });
+    const r = await api.testCompression().catch((e) => ({ ok: false, error: errText(e), latencyMs: 0 }) as { ok: boolean; error?: string; latencyMs: number; originalTokens?: number; keptTokens?: number });
+    setTest({
+      busy: false,
+      ok: r.ok,
+      text: r.ok ? `Working — ${r.originalTokens} → ${r.keptTokens} tokens in ${(r.latencyMs / 1000).toFixed(1)}s` : r.error,
+    });
+    void load();
+  }
+
+  const saved30 = status ? status.last30.originalTokens - status.last30.keptTokens : 0;
+  const pct30 = status && status.last30.originalTokens ? Math.round((saved30 / status.last30.originalTokens) * 100) : 0;
+
+  return (
+    <Group
+      title="Context compression · SuperCompress"
+      action={
+        <a href="https://www.supercompress.dev" target="_blank" rel="noopener noreferrer" className="text-[12px] text-agent hover:underline">
+          supercompress.dev ↗
+        </a>
+      }
+    >
+      <Toggle
+        checked={c.enabled}
+        onChange={(v) => save({ compression: { enabled: v } })}
+        label="Compress large tool results"
+        hint="Web pages, emails, connector output and browser snapshots are cut to the lines that answer the current request — kept lines are verbatim, never rewritten. Secrets are removed before anything is sent, and the agent can always fetch the full original."
+      />
+      <Row
+        label="API key"
+        hint={
+          status?.configured ? (
+            <span className="text-ok">Key saved (or set via SUPERCOMPRESS_API_KEY).</span>
+          ) : (
+            <>
+              Free monthly allowance —{" "}
+              <a href="https://www.supercompress.dev/dashboard" target="_blank" rel="noopener noreferrer" className="text-agent underline">
+                get a key
+              </a>
+              .
+            </>
+          )
+        }
+      >
+        <div className="flex gap-2">
+          <Input type="password" value={key} onChange={(e) => setKey(e.target.value)} placeholder={status?.configured ? "••••••••" : "sc_live_…"} autoComplete="off" className="@lg:w-56" />
+          <Button variant="primary" disabled={!key.trim()} onClick={saveKey}>
+            <KeyRound size={14} /> Save
+          </Button>
+        </div>
+      </Row>
+      <Row label="Where" hint="The hosted model takes up to ~30s per call, so live chat is skipped by default.">
+        <Select
+          value={c.scope}
+          onChange={(v) => save({ compression: { scope: v as "background" | "all" } })}
+          options={[
+            { value: "background", label: "Background & tasks" },
+            { value: "all", label: "Everywhere, incl. live chat" },
+          ]}
+          className="@lg:w-56"
+        />
+      </Row>
+      <Row label="Only results longer than" hint="Characters. Smaller results go to the model as-is.">
+        <CommitInput
+          type="number"
+          min={1000}
+          step={1000}
+          value={String(c.minChars)}
+          onCommit={(v) => save({ compression: { minChars: Math.max(1000, Number(v) || 6000) } })}
+          className="@lg:w-32"
+        />
+      </Row>
+      <Row
+        label="Status"
+        hint={
+          test.text ? (
+            <span className={test.ok ? "text-ok" : "text-danger"}>{test.text}</span>
+          ) : status?.paused ? (
+            <span className="text-danger">{status.paused}</span>
+          ) : status && status.last30.calls ? (
+            `Saved ${fmtTokens(saved30)} tokens (${pct30}%) over ${status.last30.calls} results in the last 30 days · today ${fmtTokens(status.today.originalTokens - status.today.keptTokens)}`
+          ) : (
+            "No results compressed yet."
+          )
+        }
+      >
+        <Button size="sm" variant="quiet" busy={test.busy} disabled={!status?.configured} onClick={runTest}>
+          {test.busy ? "Testing…" : <><Zap size={13} /> Test</>}
+        </Button>
+      </Row>
+    </Group>
   );
 }

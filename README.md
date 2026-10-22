@@ -19,6 +19,7 @@ Tandem is an open alternative to [Claude Duet](https://claude.com/product/claude
   - Moving money between accounts
   - Acting in someone else's account
 - **Connects to anything that speaks MCP.** There are one-click templates for Gmail/IMAP, calendars, Google Workspace, Stripe, GitHub, Notion, Linear, Sentry, Atlassian, Zapier and Composio. Zapier and Composio each add thousands of apps.
+- **Built-in context compression with [SuperCompress](https://www.supercompress.dev).** Large tool results get cut to the lines that answer the current request, and the kept lines stay verbatim. That includes web pages, inboxes, connector output and browser snapshots. In testing, a 14.6k-token log came back as 154 tokens with the error line intact. Secrets are removed first, and the agent can always pull the full original.
 - **A real browser.** You can watch it live and take over for logins and CAPTCHAs. Saved passwords are filled without the model ever seeing them.
 
 ## Tandem vs. Claude Duet
@@ -135,6 +136,7 @@ Default routing is `anthropic:claude-opus-5-5` for work and `anthropic:claude-ha
 | `TANDEM_BROWSER_PATH` | auto (Chrome/Edge) | Chromium executable |
 | `TANDEM_ALLOW_PRIVATE_FETCH` | off | Let web tools reach LAN addresses |
 | `ANTHROPIC_API_KEY` etc. | | Provider keys can come from the environment |
+| `SUPERCOMPRESS_API_KEY` | | Turns on context compression ([free key](https://www.supercompress.dev/dashboard)); can also be set in Settings → Models |
 
 ## Development
 

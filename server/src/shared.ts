@@ -246,6 +246,14 @@ export interface Settings {
   };
   notify: NotifyConfig;
   browser: { enabled: boolean; headless: boolean; executablePath: string | null };
+  /** Query-aware compression of large tool results via the hosted SuperCompress API. */
+  compression: {
+    enabled: boolean;
+    /** Only results at least this many characters long are compressed. */
+    minChars: number;
+    /** "background": tasks, briefs, check-ins and routines only (no added latency in live chat). "all": live chat too. */
+    scope: "background" | "all";
+  };
   sandbox: { enabled: boolean; image: string };
 }
 
