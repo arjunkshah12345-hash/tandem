@@ -57,7 +57,7 @@ export function forbiddenByArgs(name: string, args: Record<string, unknown>): st
   if (/\b(buy|sell)\b[^.]{0,40}\b(shares?|stocks?|options?|bitcoin|btc|eth|crypto)\b/i.test(blob)) {
     return "Trading securities or crypto is off-limits for Tandem, even with approval.";
   }
-  if (/\b(wire|transfer|move)\b[^.]{0,30}\b(money|funds|\$\s?\d)/i.test(blob) && !/draft|memory|artifact|task/i.test(name)) {
+  if (/\b(wire|transfer|move)\b[^.]{0,30}(\b(money|funds)\b|\$\s?\d)/i.test(blob) && !/draft|memory|artifact|task/i.test(name)) {
     return "Moving money between accounts is off-limits for Tandem, even with approval.";
   }
   return null;
