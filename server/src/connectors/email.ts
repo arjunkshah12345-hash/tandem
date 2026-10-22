@@ -72,7 +72,7 @@ export class EmailConnection {
             messageId: m.envelope?.messageId ?? String(m.uid),
             from: (m.envelope?.from ?? []).map((a) => (a.name ? `${a.name} <${a.address}>` : a.address)).join(", "),
             subject: m.envelope?.subject ?? "(no subject)",
-            date: m.envelope?.date?.toISOString() ?? "",
+            date: m.envelope?.date ? new Date(m.envelope.date).toISOString() : "",
             seen: m.flags?.has("\\Seen") ?? false,
           });
         }
