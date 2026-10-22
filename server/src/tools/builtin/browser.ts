@@ -42,7 +42,8 @@ export class BrowserSession {
     } catch {
       throw new Error("Browser unavailable: install playwright-core (npm i playwright-core) and Chrome/Chromium.");
     }
-    const { headless, executablePath } = this.opts();
+    const { headless, executablePath: configured } = this.opts();
+    const executablePath = configured || process.env.TANDEM_BROWSER_PATH || null;
     const attempts: Record<string, unknown>[] = executablePath
       ? [{ executablePath }]
       : [{ channel: "chrome" }, { channel: "msedge" }, {}];

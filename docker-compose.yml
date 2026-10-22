@@ -1,0 +1,18 @@
+services:
+  tandem:
+    build: .
+    image: tandem:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:7420:7420" # put a TLS reverse proxy (Caddy, Cloudflare Tunnel, Tailscale) in front for phone access
+    volumes:
+      - tandem-data:/data
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      TANDEM_PUBLIC_URL: ${TANDEM_PUBLIC_URL:-http://localhost:7420}
+    shm_size: 1gb # Chromium needs more than Docker's 64MB default
+
+volumes:
+  tandem-data:
