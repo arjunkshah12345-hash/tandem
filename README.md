@@ -49,7 +49,7 @@ Tandem is an open alternative to [Claude Duet](https://claude.com/product/claude
 Requires **Node 22.13+** (uses the built-in `node:sqlite`).
 
 ```bash
-git clone <this repo> tandem && cd tandem
+git clone https://github.com/arjunkshah12345-hash/tandem.git && cd tandem
 npm install
 npm run build
 npm start            # → http://localhost:7420
