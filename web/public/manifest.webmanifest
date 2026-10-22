@@ -1,0 +1,10 @@
+{
+  "name": "Tandem",
+  "short_name": "Tandem",
+  "description": "Your proactive assistant",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f1ea",
+  "theme_color": "#f5f1ea",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

@@ -1,0 +1,212 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #f5f1ea;
+  --card: #fffdf9;
+  --sunk: #ece6dc;
+  --ink: #1f1d1a;
+  --muted: #6f695f;
+  --faint: #a39b8e;
+  --line: #e3dbcd;
+  --accent: #e2622c;
+  --accent-soft: #fbe5d8;
+  --agent: #2f5d50;
+  --agent-soft: #dfeae5;
+  --ok: #2f7d4f;
+  --danger: #c2412d;
+  --danger-soft: #f8e0da;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #151412;
+    --card: #1d1c19;
+    --sunk: #24221e;
+    --ink: #ece7de;
+    --muted: #a39d92;
+    --faint: #6d685f;
+    --line: #2f2c27;
+    --accent: #f07a44;
+    --accent-soft: #3a2519;
+    --agent: #8cc2ae;
+    --agent-soft: #1e2d28;
+    --ok: #6cc28e;
+    --danger: #f07a66;
+    --danger-soft: #3b1f1a;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-sunk: var(--sunk);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-agent: var(--agent);
+  --color-agent-soft: var(--agent-soft);
+  --color-ok: var(--ok);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --font-display: "New York", ui-serif, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-sans: ui-sans-serif, -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+/* Markdown inside messages */
+.prose-tandem {
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.prose-tandem > * + * {
+  margin-top: 0.6em;
+}
+.prose-tandem h1,
+.prose-tandem h2,
+.prose-tandem h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 0.9em;
+}
+.prose-tandem h1 {
+  font-size: 1.3em;
+}
+.prose-tandem h2 {
+  font-size: 1.15em;
+}
+.prose-tandem h3 {
+  font-size: 1.02em;
+}
+.prose-tandem ul,
+.prose-tandem ol {
+  padding-left: 1.2em;
+}
+.prose-tandem ul {
+  list-style: disc;
+}
+.prose-tandem ol {
+  list-style: decimal;
+}
+.prose-tandem li + li {
+  margin-top: 0.25em;
+}
+.prose-tandem li::marker {
+  color: var(--faint);
+}
+.prose-tandem a {
+  color: var(--agent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-tandem strong {
+  font-weight: 650;
+}
+.prose-tandem code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--sunk);
+  padding: 0.1em 0.35em;
+  border-radius: 5px;
+}
+.prose-tandem pre {
+  background: var(--sunk);
+  padding: 0.8em 1em;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-size: 0.85em;
+}
+.prose-tandem pre code {
+  background: none;
+  padding: 0;
+}
+.prose-tandem blockquote {
+  border-left: 3px solid var(--line);
+  padding-left: 0.8em;
+  color: var(--muted);
+}
+.prose-tandem table {
+  border-collapse: collapse;
+  font-size: 0.9em;
+  display: block;
+  overflow-x: auto;
+}
+.prose-tandem th,
+.prose-tandem td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.4em 0.7em;
+  text-align: left;
+}
+.prose-tandem th {
+  font-weight: 600;
+  color: var(--muted);
+}
+.prose-tandem hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-rise {
+  animation: rise 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.dot-breathe span {
+  animation: breathe 1.2s ease-in-out infinite;
+}
+.dot-breathe span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.dot-breathe span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .dot-breathe span {
+    animation: none;
+  }
+}
