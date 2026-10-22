@@ -33,6 +33,7 @@ type Action =
   | { type: "approvals"; approvals: Approval[] }
   | { type: "tasks"; tasks: Task[] }
   | { type: "artifacts"; artifacts: Artifact[] }
+  | { type: "connectors"; status: ConnectorStatus[] }
   | { type: "activity"; entries: ActivityEntry[]; append: boolean };
 
 const initial: State = {
@@ -78,6 +79,8 @@ function reducer(s: State, a: Action): State {
       return { ...s, tasks: Object.fromEntries(a.tasks.map((x) => [x.id, x])) };
     case "artifacts":
       return { ...s, artifacts: Object.fromEntries(a.artifacts.map((x) => [x.id, x])) };
+    case "connectors":
+      return { ...s, connectors: Object.fromEntries(a.status.map((x) => [x.id, x])) };
     case "activity":
       return { ...s, activity: a.append ? [...s.activity, ...a.entries] : a.entries };
     case "event": {
@@ -151,11 +154,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   stateRef.current = state;
 
   const refresh = useCallback(async () => {
-    const [channels, approvals, tasks, artifacts] = await Promise.all([api.channels(), api.approvals(), api.tasks(), api.artifacts()]);
+    const [channels, approvals, tasks, artifacts, connectors] = await Promise.all([api.channels(), api.approvals(), api.tasks(), api.artifacts(), api.connectors()]);
     dispatch({ type: "channels", channels });
     dispatch({ type: "approvals", approvals });
     dispatch({ type: "tasks", tasks });
     dispatch({ type: "artifacts", artifacts });
+    dispatch({ type: "connectors", status: connectors.status });
   }, []);
 
   const loadMessages = useCallback(async (channelId: string, older = false) => {

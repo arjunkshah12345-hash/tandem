@@ -298,7 +298,12 @@ export function createApi(app: App) {
     if (patch.browser) await app.browser.close();
     return c.json(s);
   });
-  api.get("/providers", (c) => c.json({ providers: app.providers.list(), presets: PROVIDER_PRESETS }));
+  api.get("/providers", (c) => {
+    const providers = app.providers.list();
+    // Whether a key is available (vault or env) — never the key itself.
+    const keyPresent = Object.fromEntries(providers.map((p) => [p.id, !p.apiKeySecret || app.vault.has(p.apiKeySecret)]));
+    return c.json({ providers, presets: PROVIDER_PRESETS, keyPresent });
+  });
   api.put("/providers/:id", async (c) => {
     const b = await c.req.json<ProviderConfig>();
     return c.json(app.providers.save({ ...b, id: c.req.param("id") }));

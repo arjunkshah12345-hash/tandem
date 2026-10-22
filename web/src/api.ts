@@ -95,7 +95,7 @@ export const api = {
 
   settings: () => get<Settings>("/settings"),
   saveSettings: (b: DeepPartial<Settings>) => patch<Settings>("/settings", b),
-  providers: () => get<{ providers: ProviderConfig[]; presets: ProviderConfig[] }>("/providers"),
+  providers: () => get<{ providers: ProviderConfig[]; presets: ProviderConfig[]; keyPresent: Record<string, boolean> }>("/providers"),
   saveProvider: (p: ProviderConfig) => put<ProviderConfig>(`/providers/${p.id}`, p),
   deleteProvider: (id: string) => del(`/providers/${id}`),
   models: (id: string) => get<{ models: string[]; error?: string }>(`/providers/${id}/models`),
