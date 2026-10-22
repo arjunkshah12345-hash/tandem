@@ -55,7 +55,7 @@ export class BrowserSession {
         lastErr = e;
       }
     }
-    if (!this.browser) throw new Error(`Could not launch a browser: ${(lastErr as Error)?.message}. Set Settings → Browser → executable path.`);
+    if (!this.browser) throw new Error(`Could not launch a browser: ${(lastErr as Error)?.message}. Install Chrome or set the browser path in Settings → Safety.`);
     const ctx = await this.browser.newContext({ viewport: { width: 1280, height: 860 }, locale: "en-US" });
     this.page = await ctx.newPage();
     return this.page;

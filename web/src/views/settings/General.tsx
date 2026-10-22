@@ -13,10 +13,10 @@ export function ProfileSection() {
     <Section title="Profile" description="Tandem uses this to write like it knows you. Everything else it learns goes into Memory, where you can edit it.">
       <Group title="You">
         <Row label="Name">
-          <CommitInput value={s.userName} onCommit={(v) => save({ userName: v })} className="sm:w-64" />
+          <CommitInput value={s.userName} onCommit={(v) => save({ userName: v })} className="@lg:w-64" />
         </Row>
         <Row label="Timezone" hint="Briefs, check-ins, quiet hours and routines follow this.">
-          <CommitInput value={s.timezone} onCommit={(v) => save({ timezone: v })} list="tz-list" className="sm:w-64" />
+          <CommitInput value={s.timezone} onCommit={(v) => save({ timezone: v })} list="tz-list" className="@lg:w-64" />
           {zones ? (
             <datalist id="tz-list">
               {zones.map((z) => (
@@ -270,6 +270,9 @@ export function SafetySection() {
       <Group title="Browser">
         <Toggle checked={s.browser.enabled} onChange={(v) => save({ browser: { enabled: v } })} label="Let Tandem use a browser" hint="For sites without an integration. You can watch and take over from Activity. Requires Chrome or Edge installed." />
         <Toggle checked={!s.browser.headless} onChange={(v) => save({ browser: { headless: !v } })} label="Show the browser window" hint="Useful on your own machine; leave off on a server." />
+        <Row label="Browser path" hint="Optional. Leave blank to use installed Chrome or Edge.">
+          <CommitInput value={s.browser.executablePath ?? ""} onCommit={(v) => save({ browser: { executablePath: v.trim() || null } })} placeholder="/usr/bin/chromium" className="font-mono text-[13px] @lg:w-72" />
+        </Row>
       </Group>
 
       <div>

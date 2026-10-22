@@ -98,9 +98,11 @@ export function Shell({ onLogout }: { onLogout: () => void }) {
       </main>
 
       {/* Right panel (wide desktop) */}
-      <aside className="scroll-thin hidden w-[340px] shrink-0 overflow-y-auto border-l border-line bg-paper xl:block">
-        <NeedsYou />
-      </aside>
+      {view === "thread" || view === "tasks" ? (
+        <aside className="scroll-thin hidden w-[340px] shrink-0 overflow-y-auto border-l border-line bg-paper xl:block">
+          <NeedsYou />
+        </aside>
+      ) : null}
 
       <Sheet open={needsOpen} onClose={() => setNeedsOpen(false)} title="Needs you">
         <NeedsYou compact />

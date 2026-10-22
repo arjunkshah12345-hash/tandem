@@ -18,7 +18,7 @@ export function Button({
       {...rest}
       disabled={rest.disabled || busy}
       className={clsx(
-        "inline-flex items-center justify-center gap-1.5 rounded-full font-medium transition-[background,color,transform,opacity] active:scale-[0.97] disabled:opacity-45 disabled:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-agent cursor-pointer disabled:cursor-default select-none",
+        "inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full font-medium transition-[background,color,transform,opacity] active:scale-[0.97] disabled:opacity-45 disabled:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-agent cursor-pointer disabled:cursor-default select-none",
         size === "sm" ? "h-8 px-3 text-[13px]" : "h-10 px-4 text-sm",
         variant === "primary" && "bg-ink text-paper hover:opacity-90",
         variant === "accent" && "bg-accent text-white hover:brightness-105",

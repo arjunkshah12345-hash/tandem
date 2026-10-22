@@ -56,11 +56,11 @@ export class Approvals {
     const result = outcome.result.content.replace(/<\/?untrusted_content[^>]*>/g, "").slice(0, 4000);
     const done = app.store.setApproval(id, { status: ok ? "executed" : "failed", result });
     app.store.log("approval", `${ok ? "Approved & done" : "Approved but failed"}: ${ap.title}`, result.slice(0, 400), ap.channelId, ap.taskId);
+    // The result came from outside — keep it fenced so it's read as data, not instructions.
+    const fenced = `\n\n<untrusted_content source="${ap.toolName} result">\n${result.slice(0, 1500)}\n</untrusted_content>`;
     this.feedBack(
       ap,
-      ok
-        ? `Approved and done: ${ap.title}${edits ? " (the user edited it first)" : ""}. Result: ${result.slice(0, 1500)}`
-        : `Approved but it FAILED: ${ap.title}. Error: ${result.slice(0, 1500)}`,
+      ok ? `Approved and done: ${ap.title}${edits ? " (you edited it first)" : ""}.${fenced}` : `Approved, but it failed: ${ap.title}.${fenced}`,
       !ok,
     );
     return done;

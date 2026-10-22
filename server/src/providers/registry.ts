@@ -113,10 +113,10 @@ export class Providers {
     if (cached) return cached;
     const cfg = this.get(id);
     if (!cfg) throw new Error(`Unknown provider "${id}"`);
-    if (!cfg.enabled) throw new Error(`Provider "${cfg.label}" is disabled. Enable it in Settings → Providers.`);
+    if (!cfg.enabled) throw new Error(`Provider "${cfg.label}" is disabled. Turn it on in Settings → Models.`);
     const key = cfg.apiKeySecret ? this.vault.get(cfg.apiKeySecret) : null;
     if (cfg.apiKeySecret && !key && !LOCAL.has(cfg.id)) {
-      throw new Error(`No API key for ${cfg.label}. Add secret ${cfg.apiKeySecret} in Settings → Providers.`);
+      throw new Error(`No API key for ${cfg.label}. Add secret ${cfg.apiKeySecret} in Settings → Models (paste the key on the provider).`);
     }
     const headers = cfg.extraHeaders ? this.vault.resolveRecord(cfg.extraHeaders) : undefined;
     let a: ProviderAdapter;

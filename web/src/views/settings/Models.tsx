@@ -39,7 +39,7 @@ export function ModelsSection() {
             value={s.models.fallbacks.join(", ")}
             onCommit={(v) => save({ models: { fallbacks: v.split(",").map((x) => x.trim()).filter(Boolean) } })}
             placeholder="anthropic:claude-sonnet-5-5, ollama:<model>"
-            className="font-mono text-[13px] sm:w-80"
+            className="font-mono text-[13px] @lg:w-80"
           />
         </Row>
       </Group>
@@ -69,7 +69,7 @@ function ModelRow({ label, hint, value, onCommit }: { label: string; hint: strin
   return (
     <Row label={label} hint={test.result ? <span className={test.ok ? "text-ok" : "text-danger"}>{test.result}</span> : hint}>
       <div className="flex items-center gap-1.5">
-        <CommitInput value={value} onCommit={onCommit} list="model-options" className="font-mono text-[13px] sm:w-72" spellCheck={false} />
+        <CommitInput value={value} onCommit={onCommit} list="model-options" className="font-mono text-[13px] @lg:w-72" spellCheck={false} />
         <Button size="sm" variant="quiet" busy={test.busy} onClick={run} title="Send a test message">
           {test.busy ? null : <Zap size={13} />} Test
         </Button>

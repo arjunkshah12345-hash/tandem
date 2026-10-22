@@ -168,8 +168,13 @@ const SUGGESTIONS = [
 function Welcome({ channelId }: { channelId: string }) {
   const { state } = useStore();
   const [name, setName] = useState("");
+  const [needsModel, setNeedsModel] = useState(false);
   useEffect(() => {
     api.me().then((m) => setName(m.userName)).catch(() => {});
+    api
+      .providers()
+      .then((p) => setNeedsModel(!p.providers.some((x) => x.enabled && p.keyPresent[x.id])))
+      .catch(() => {});
   }, []);
   const noApps = Object.keys(state.connectors).length === 0;
   if (channelId !== "main")
@@ -184,6 +189,18 @@ function Welcome({ channelId }: { channelId: string }) {
       <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted">
         Hand me anything you'd give a sharp assistant. I'll check in through the day, run longer jobs as tasks, and ask before I send, pay, sign or delete anything.
       </p>
+      {needsModel ? (
+        <button
+          onClick={() => navigate({ view: "settings", section: "models" })}
+          className="mt-6 flex w-full items-center gap-3 rounded-2xl border border-accent/40 bg-accent-soft/60 px-4 py-3 text-left"
+        >
+          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-white">1</span>
+          <span>
+            <span className="block text-[14.5px] font-medium">Add a model to get started</span>
+            <span className="block text-[13px] text-muted">Paste an Anthropic, OpenAI, Gemini or OpenRouter key — or point Tandem at Ollama for fully local.</span>
+          </span>
+        </button>
+      ) : null}
       <div className="mt-6 grid gap-2 sm:grid-cols-2">
         {SUGGESTIONS.map((s) => (
           <button
@@ -213,7 +230,7 @@ function MessageRow({ message: m, streamed, grouped }: { message: Message; strea
   if (m.kind === "system" || m.role === "system") {
     return (
       <div className="my-3 flex justify-center">
-        <div className="max-w-[90%] rounded-full bg-sunk px-3 py-1 text-center text-[12.5px] text-muted">
+        <div className="max-w-[90%] rounded-2xl bg-sunk px-3 py-1.5 text-center text-[12.5px] text-muted">
           <SystemText text={m.content} />
         </div>
       </div>
@@ -277,9 +294,25 @@ function MessageRow({ message: m, streamed, grouped }: { message: Message; strea
   );
 }
 
-/** System notes can mention a task: render "task:<id>" style references plainly. */
+/** System notes may carry a fenced tool result for the model; show it folded. */
 function SystemText({ text }: { text: string }) {
-  return <>{text.replace(/<\/?system_note>/g, "")}</>;
+  const [open, setOpen] = useState(false);
+  const m = text.match(/<untrusted_content[^>]*>([\s\S]*?)<\/untrusted_content>/);
+  const head = text.replace(/<untrusted_content[\s\S]*?<\/untrusted_content>/g, "").replace(/<\/?system_note>/g, "").trim();
+  return (
+    <>
+      {head}
+      {m?.[1]?.trim() ? (
+        <>
+          {" "}
+          <button onClick={() => setOpen((o) => !o)} className="text-faint underline underline-offset-2 hover:text-muted">
+            {open ? "hide result" : "result"}
+          </button>
+          {open ? <pre className="mt-2 max-h-60 overflow-auto whitespace-pre-wrap rounded-lg bg-paper p-2 text-left font-mono text-[11.5px]">{m[1].trim()}</pre> : null}
+        </>
+      ) : null}
+    </>
+  );
 }
 
 export function AgentMark({ size = 28 }: { size?: number }) {

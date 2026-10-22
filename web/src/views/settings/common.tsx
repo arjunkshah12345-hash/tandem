@@ -34,19 +34,19 @@ export function Group({ title, action, children }: { title: string; action?: Rea
         <h3 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">{title}</h3>
         {action}
       </div>
-      <div className="rounded-2xl border border-line bg-card px-4 py-2">{children}</div>
+      <div className="@container rounded-2xl border border-line bg-card px-4 py-2">{children}</div>
     </div>
   );
 }
 
 export function Row({ label, hint, children }: { label: ReactNode; hint?: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-2 border-b border-line py-3 last:border-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+    <div className="flex flex-col gap-2 border-b border-line py-3 last:border-0 @lg:flex-row @lg:items-center @lg:justify-between @lg:gap-6">
       <div className="min-w-0">
         <div className="text-sm text-ink">{label}</div>
         {hint ? <div className="mt-0.5 text-[12.5px] text-muted">{hint}</div> : null}
       </div>
-      <div className="shrink-0 sm:max-w-[60%]">{children}</div>
+      <div className="min-w-0 shrink-0 @lg:max-w-[60%]">{children}</div>
     </div>
   );
 }

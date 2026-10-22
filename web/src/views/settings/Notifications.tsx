@@ -107,17 +107,17 @@ export function NotificationsSection() {
       <Group title="ntfy">
         <Toggle checked={ntfy.enabled} onChange={(v) => save({ notify: { ntfy: { ...ntfy, enabled: v } } })} label="Send to an ntfy topic" hint="Free, open-source push to any phone via the ntfy app. Pick an unguessable topic name." />
         <Row label="Server">
-          <CommitInput value={ntfy.server} onCommit={(v) => save({ notify: { ntfy: { ...ntfy, server: v } } })} className="sm:w-64" />
+          <CommitInput value={ntfy.server} onCommit={(v) => save({ notify: { ntfy: { ...ntfy, server: v } } })} className="@lg:w-64" />
         </Row>
         <Row label="Topic">
-          <CommitInput value={ntfy.topic} onCommit={(v) => save({ notify: { ntfy: { ...ntfy, topic: v } } })} placeholder="tandem-7f3k2q" className="sm:w-64" />
+          <CommitInput value={ntfy.topic} onCommit={(v) => save({ notify: { ntfy: { ...ntfy, topic: v } } })} placeholder="tandem-7f3k2q" className="@lg:w-64" />
         </Row>
       </Group>
 
       <Group title="Webhook">
         <Toggle checked={hook.enabled} onChange={(v) => save({ notify: { webhook: { ...hook, enabled: v } } })} label="POST notifications as JSON" hint="For Slack/Discord incoming webhooks, Home Assistant, or your own automations." />
         <Row label="URL">
-          <CommitInput value={hook.url} onCommit={(v) => save({ notify: { webhook: { ...hook, url: v } } })} placeholder="https://hooks.slack.com/…" className="sm:w-80" />
+          <CommitInput value={hook.url} onCommit={(v) => save({ notify: { webhook: { ...hook, url: v } } })} placeholder="https://hooks.slack.com/…" className="@lg:w-80" />
         </Row>
       </Group>
     </Section>

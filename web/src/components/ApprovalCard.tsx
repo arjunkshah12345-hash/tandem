@@ -108,8 +108,8 @@ export function ApprovalCard({ approval, compact }: { approval: Approval; compac
             <Button size="sm" variant="quiet" busy={busy === "deny"} disabled={!!busy} onClick={() => decide("deny")}>
               <X size={14} /> Not now
             </Button>
-            <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setEditing((e) => !e)}>
-              <Pencil size={13} /> {editing ? "Cancel edit" : "Edit"}
+            <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setEditing((e) => !e)} title="Edit before approving">
+              <Pencil size={13} /> {compact ? null : editing ? "Cancel edit" : "Edit"}
             </Button>
           </>
         ) : (
