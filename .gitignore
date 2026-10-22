@@ -1,0 +1,7 @@
+node_modules
+dist
+.tandem
+*.db
+*.db-*
+.env
+web/dist

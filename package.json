@@ -1,0 +1,17 @@
+{
+  "name": "tandem",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Open-source proactive AI agent. Morning briefs, background check-ins, approval-gated actions — on any model provider.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "workspaces": ["server", "web"],
+  "scripts": {
+    "dev": "npm run dev -w server & npm run dev -w web",
+    "build": "npm run build -w web && npm run build -w server",
+    "start": "npm run start -w server",
+    "test": "npm test -w server",
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w web"
+  },
+  "engines": { "node": ">=22.13" }
+}
