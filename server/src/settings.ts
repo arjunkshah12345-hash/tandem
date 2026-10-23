@@ -25,6 +25,8 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   notify: { webPush: true, ntfy: null, telegram: null, webhook: null },
   browser: { enabled: true, headless: true, executablePath: null },
+  // Active only once a SUPERCOMPRESS_API_KEY is stored (or set in the environment).
+  compression: { enabled: true, minChars: 6000, scope: "background" },
   sandbox: { enabled: false, image: "node:22-bookworm-slim" },
 };
 
@@ -65,6 +67,8 @@ function validate(s: Settings) {
     if (!/^\d{2}:\d{2}$/.test(t)) throw new Error(`Times must be HH:MM, got "${t}"`);
   }
   if (!(s.checkins.everyHours >= 0.25 && s.checkins.everyHours <= 24)) throw new Error("Check-in interval must be 0.25–24 hours");
+  if (s.compression.scope !== "background" && s.compression.scope !== "all") throw new Error('Compression scope must be "background" or "all"');
+  if (!(s.compression.minChars >= 1000 && s.compression.minChars <= 200_000)) throw new Error("Compression threshold must be 1,000–200,000 characters");
   for (const m of [s.models.work, s.models.triage, ...s.models.fallbacks]) {
     if (!/^[a-z0-9_-]+:.+$/.test(m)) throw new Error(`Model "${m}" must look like provider:model`);
   }

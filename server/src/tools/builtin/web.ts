@@ -128,7 +128,8 @@ export const webTools: Tool[] = [
     summarize: (a) => `Read ${hostOf(String(a.url))}`,
     run: async (a, { signal }) => {
       const r = await fetchReadable(String(a.url), signal);
-      return { text: `# ${r.title} (HTTP ${r.status})\n\n${truncate(r.text, 40000)}`, untrusted: true };
+      // The gate compresses large pages against the request (SuperCompress) and truncates after.
+      return { text: `# ${r.title} (HTTP ${r.status})\n\n${truncate(r.text, 200_000)}`, untrusted: true };
     },
   },
   {
@@ -163,7 +164,7 @@ export const webTools: Tool[] = [
       const headers = app.vault.resolveRecord((a.headers as Record<string, string>) ?? {});
       const res = await fetch(url, { method: String(a.method), headers, body: a.body ? String(a.body) : undefined, signal });
       const text = await res.text();
-      return { text: `HTTP ${res.status}\n${truncate(text, 30000)}`, untrusted: true };
+      return { text: `HTTP ${res.status}\n${truncate(text, 200_000)}`, untrusted: true };
     },
   },
 ];

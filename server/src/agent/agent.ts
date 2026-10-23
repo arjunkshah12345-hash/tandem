@@ -98,6 +98,7 @@ export class Agent {
       models,
       effort: o.mode === "checkin" ? "low" : o.mode === "chat" ? "medium" : "medium",
       system: { stable: stableSystem(), volatile: volatileSystem(app, { mode: o.mode, channelId, query }) },
+      query,
       messages: history,
       tools: app.tools({ task: false }),
       signal: abort.signal,

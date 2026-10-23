@@ -357,12 +357,32 @@ export function createApi(app: App) {
     if (typeof value !== "string" || !value) throw new Error("Value required");
     app.vault.set(c.req.param("name"), value);
     app.providers.invalidate();
+    app.compressor.resume();
     return c.json({ ok: true });
   });
   api.delete("/secrets/:name", (c) => {
     app.vault.delete(c.req.param("name"));
     app.providers.invalidate();
     return c.json({ ok: true });
+  });
+
+  // ---------------- context compression (SuperCompress) ----------------
+  api.get("/compression", (c) => c.json(app.compressor.status()));
+  api.post("/compression/test", async (c) => {
+    const t0 = Date.now();
+    const sample = [
+      "## Deploy log",
+      ...Array.from({ length: 60 }, (_, i) => `[build] step ${i + 1}/60 ok (${(i * 37) % 900}ms)`),
+      "[deploy] ERROR: health check failed for api-7f9c — connection refused on :8443",
+      ...Array.from({ length: 40 }, (_, i) => `[deploy] waiting for rollout… ${i + 1}`),
+    ].join("\n");
+    try {
+      app.compressor.resume();
+      const r = await app.compressor.call(sample, "Why did the deploy fail?");
+      return c.json({ ok: true, latencyMs: Date.now() - t0, originalTokens: r.original_tokens, keptTokens: r.kept_tokens });
+    } catch (e) {
+      return c.json({ ok: false, latencyMs: Date.now() - t0, error: errorMessage(e) });
+    }
   });
 
   // ---------------- misc ----------------

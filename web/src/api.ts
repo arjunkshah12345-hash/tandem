@@ -112,10 +112,21 @@ export const api = {
 
   skills: () => get<SkillInfo[]>("/skills"),
   usage: () => get<UsageSummary>("/usage"),
+  compression: () => get<CompressionStatus>("/compression"),
+  testCompression: () => post<{ ok: boolean; latencyMs: number; originalTokens?: number; keptTokens?: number; error?: string }>("/compression/test"),
   pushKey: () => get<{ publicKey: string }>("/push/key"),
   subscribePush: (sub: PushSubscriptionJSON) => post("/push/subscribe", sub),
   testPush: () => post("/push/test"),
   takeover: (b: { action: "click" | "type" | "key" | "navigate"; x?: number; y?: number; text?: string; url?: string }) => post("/browser/takeover", b),
 };
+
+type Totals = { calls: number; originalTokens: number; keptTokens: number };
+export interface CompressionStatus {
+  enabled: boolean;
+  configured: boolean;
+  paused: string | null;
+  today: Totals;
+  last30: Totals;
+}
 
 export type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? (T[K] extends unknown[] ? T[K] : DeepPartial<T[K]>) : T[K] };

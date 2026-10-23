@@ -16,6 +16,8 @@ export interface CallOutcome {
 }
 
 const MAX_RESULT_CHARS = 50_000;
+/** Larger results are allowed in when SuperCompress can shrink them first. */
+const MAX_COMPRESS_INPUT = 400_000;
 
 export function riskOf(tool: Tool, args: Record<string, unknown>): RiskLevel {
   return typeof tool.risk === "function" ? tool.risk(args) : tool.risk;
@@ -133,10 +135,19 @@ export async function runTool(tool: Tool, args: Record<string, unknown>, ctx: To
   try {
     const raw = await tool.run(args, ctx);
     const out: ToolOutput = typeof raw === "string" ? { text: raw } : raw;
-    let text = redact(truncate(out.text ?? "", MAX_RESULT_CHARS), app.vault.allValues());
+    // Redact first: nothing secret ever reaches the model — or the compression service.
+    let text = redact(truncate(out.text ?? "", MAX_COMPRESS_INPUT), app.vault.allValues());
+    let note: string | null = null;
+    if (tool.compress ?? !!out.untrusted) {
+      const query = `${ctx.query ?? ""}\n\n(Result of ${tool.name}: ${summary})`;
+      const interactive = !ctx.background && !ctx.taskId; // a live chat turn the user is waiting on
+      ({ text, note } = await app.compressor.maybeCompress(text, query, { resultId: `res_${callId}`, toolName: tool.name, signal: ctx.signal, interactive, truncateAt: MAX_RESULT_CHARS }));
+    }
+    text = truncate(text, MAX_RESULT_CHARS);
     if (out.untrusted) {
       text = `<untrusted_content source="${tool.name}">\n${text.replace(/<\/?untrusted_content[^>]*>/g, "")}\n</untrusted_content>`;
     }
+    if (note) text = `${note}\n${text}`;
     if (riskOf(tool, args) !== "read") app.store.log("tool", summary, truncate(text, 400), ctx.channelId, ctx.taskId);
     const halt = tool.name === "task_ask_user" ? "ask_user" : tool.name === "task_done" ? "task_done" : undefined;
     return {

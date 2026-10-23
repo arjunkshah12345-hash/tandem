@@ -7,6 +7,8 @@ export interface ToolContext {
   taskId: string | null;
   background: boolean;
   signal: AbortSignal;
+  /** What the user is currently asking for — guides query-aware compression of results. */
+  query?: string;
 }
 
 export interface ToolOutput {
@@ -30,6 +32,8 @@ export interface Tool {
   /** Plain-language title + payload preview for approval cards. */
   describe?(args: Record<string, unknown>): { title: string; preview: string };
   run(args: Record<string, unknown>, ctx: ToolContext): Promise<ToolOutput | string>;
+  /** Allow SuperCompress on large results. Defaults to true for untrusted (external) output, false otherwise. */
+  compress?: boolean;
 }
 
 /** Tiny helpers for writing JSON schemas compactly. */

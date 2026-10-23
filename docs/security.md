@@ -54,7 +54,16 @@ Fencing alone isn't enough. The real defense is that injected instructions can't
 
 `web_fetch`, `http_request` and browser navigation resolve the target hostname and refuse private, loopback, link-local and metadata ranges (IPv4 and IPv6). That stops a crafted link from reaching your router, cloud metadata or other LAN services. Set `TANDEM_ALLOW_PRIVATE_FETCH=1` only if you need Tandem to reach a LAN service.
 
-## 6. The web app
+## 6. What leaves your machine: context compression
+
+When a SuperCompress key is configured, large tool results go to the hosted SuperCompress API (`https://www.supercompress.dev/api/v1/compress`) together with the current request, so it can keep only the relevant lines. This covers web pages, emails, MCP output and browser snapshots over the size threshold.
+
+- **Secrets are removed first.** Results are redacted for vault secrets and sensitive patterns *before* they're sent. The key travels in the `X-API-Key` header.
+- **Scope.** By default only background work is compressed: tasks, briefs, check-ins and routines. **Settings → Models → Context compression** can extend this to live chat, or switch compression off entirely.
+- **Failing open.** Errors, timeouts and "high risk" verdicts all mean the model gets the original. A rejected key, exhausted quota or rate limit pauses compression and logs why in Activity.
+- **Nothing is lost.** Every compressed result carries a `result_id`. The agent can call `get_full_result` to read the full original, which stays in memory and is never sent again.
+
+## 7. The web app
 
 - **Login.** A single user with a password (scrypt hash). Login is rate-limited per IP.
 - **Session cookie.** `HttpOnly` and `SameSite=Strict`, and `Secure` when `TANDEM_PUBLIC_URL` is https.
@@ -63,7 +72,7 @@ Fencing alone isn't enough. The real defense is that injected instructions can't
 - **Remote images.** The markdown renderer doesn't load remote images from model output, which closes tracking-pixel and URL-exfiltration channels.
 - **Binding.** The server binds to `127.0.0.1` by default. To reach it remotely, put it behind HTTPS (Tailscale, Cloudflare Tunnel, Caddy).
 
-## 7. Spend
+## 8. Spend
 
 These caps stop a runaway loop from becoming a surprise bill:
 - a daily cap on background spend (briefs, check-ins, routines)

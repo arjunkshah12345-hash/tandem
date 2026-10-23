@@ -144,6 +144,7 @@ export class TaskRunner {
       effort: "high",
       system: { stable: stableSystem(), volatile: volatileSystem(app, { mode: "task", channelId: task.channelId, taskId: id, query: task.brief }) },
       messages: transcript,
+      query: `${task.title}\n${task.brief}`,
       tools: app.tools({ task: true }),
       signal: abort.signal,
       maxSteps: STEPS_PER_RUN,

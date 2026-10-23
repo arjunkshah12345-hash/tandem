@@ -9,6 +9,7 @@ import { SettingsStore } from "./settings.ts";
 import { Providers } from "./providers/registry.ts";
 import { ConnectorManager } from "./connectors/manager.ts";
 import { Skills } from "./skills/skills.ts";
+import { Compressor, fullResultTool, SUPERCOMPRESS_KEY_SECRET } from "./compress/supercompress.ts";
 import { Notifier } from "./notify/notifier.ts";
 import { Agent } from "./agent/agent.ts";
 import { TaskRunner } from "./agent/tasks.ts";
@@ -59,6 +60,7 @@ export class App {
   budget: Budget;
   browser: BrowserSession;
   telegram: TelegramChannel;
+  compressor: Compressor;
   kv: { get<T>(k: string, fallback: T): T; set(k: string, v: unknown): void };
 
   constructor(public config: AppConfig) {
@@ -83,6 +85,7 @@ export class App {
     this.budget = new Budget(this);
     this.browser = new BrowserSession(() => this.settings.get().browser);
     this.telegram = new TelegramChannel(this);
+    this.compressor = new Compressor(this);
 
     this.settings.onChange(() => {
       this.scheduler.reloadRoutines();
@@ -96,6 +99,8 @@ export class App {
     out.push(...webTools);
     if (this.settings.get().browser.enabled) out.push(...browserTools(this.browser));
     out.push(...this.connectors.tools());
+    // Offered whenever compression is configured (not tied to transient pauses, to keep the tool list stable).
+    if (this.settings.get().compression.enabled && this.vault.has(SUPERCOMPRESS_KEY_SECRET)) out.push(fullResultTool);
     // Deterministic order keeps provider prompt caches warm.
     return out.sort((a, b) => (a.source === b.source ? a.name.localeCompare(b.name) : a.source.startsWith("builtin") ? -1 : b.source.startsWith("builtin") ? 1 : a.source.localeCompare(b.source)));
   }
