@@ -12,10 +12,17 @@ import { errorMessage } from "../util.ts";
  */
 export const SUPERCOMPRESS_KEY_SECRET = "SUPERCOMPRESS_API_KEY";
 const DEFAULT_URL = "https://www.supercompress.dev/api/v1/compress";
-/** The hosted Neural Keep model can take ~30s; anything slower falls back to the original. */
-const TIMEOUT_MS = 45_000;
+/**
+ * The hosted Neural Keep model answers in ~40–50s regardless of input size (measured Oct 2026), so a
+ * tighter budget silently skips nearly every call. Background work can wait; a live chat turn
+ * (scope "all") gets less. Anything slower still falls back to the original.
+ */
+const BACKGROUND_TIMEOUT_MS = 120_000;
+const INTERACTIVE_TIMEOUT_MS = 60_000;
 /** Don't send more than this to the API; the gate truncates anything longer afterwards. */
 const MAX_INPUT_CHARS = 400_000;
+/** The hosted API rejects contexts over 120k characters (HTTP 422); stay under it with margin. */
+const CHUNK_CHARS = 115_000;
 const KEEP_ORIGINALS = 40;
 
 interface ApiResponse {
@@ -48,6 +55,12 @@ export class Compressor {
 
   private get url() {
     return process.env.SUPERCOMPRESS_URL || DEFAULT_URL;
+  }
+
+  /** SUPERCOMPRESS_TIMEOUT_MS overrides the per-call budget (e.g. for a self-hosted, faster endpoint). */
+  private timeout(fallback: number) {
+    const n = Number(process.env.SUPERCOMPRESS_TIMEOUT_MS);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
   }
 
   private key(): string | null {
@@ -103,37 +116,69 @@ export class Compressor {
   async maybeCompress(
     text: string,
     query: string,
-    o: { resultId: string; toolName: string; signal?: AbortSignal; interactive?: boolean },
+    o: { resultId: string; toolName: string; signal?: AbortSignal; interactive?: boolean; truncateAt?: number },
   ): Promise<{ text: string; note: string | null }> {
     const { minChars, scope } = this.app.settings.get().compression;
     if (o.interactive && scope !== "all") return { text, note: null };
     if (text.length < minChars || !query.trim() || !this.active()) return { text, note: null };
-    try {
-      const r = await this.call(text.slice(0, MAX_INPUT_CHARS), query, o.signal);
-      // Low-confidence or pointless results: keep the original.
-      if (r.compression_risk === "high" || !r.compressed_text?.trim() || r.compressed_text.length > text.length * 0.9) return { text, note: null };
-      this.remember(o.resultId, text);
-      this.record(r.original_tokens, r.kept_tokens);
-      const pct = Math.round(r.tokens_saved_pct ?? (1 - r.kept_tokens / Math.max(1, r.original_tokens)) * 100);
-      const note =
-        `[SuperCompress kept the parts relevant to the current request — ${r.kept_tokens.toLocaleString()} of ${r.original_tokens.toLocaleString()} tokens (${pct}% smaller); kept lines are verbatim. ` +
-        `If something you need seems missing, call get_full_result with result_id "${o.resultId}".]`;
-      return { text: r.compressed_text, note };
-    } catch (e) {
-      if (!(e instanceof PauseError)) this.app.store.log("system", `Compression skipped for ${o.toolName}`, errorMessage(e));
+    const timeout = o.interactive ? INTERACTIVE_TIMEOUT_MS : BACKGROUND_TIMEOUT_MS;
+    // The API rejects contexts over 120k chars, so long results go up in parallel chunks.
+    const chunks = splitChunks(text.slice(0, MAX_INPUT_CHARS), CHUNK_CHARS);
+    const settled = await Promise.allSettled(chunks.map((c) => this.call(c, query, o.signal, timeout)));
+    if (settled.some((s) => s.status === "rejected" && s.reason instanceof PauseError)) return { text, note: null };
+    const failed = settled.find((s): s is PromiseRejectedResult => s.status === "rejected");
+    if (failed) this.app.store.log("system", `Compression skipped for ${o.toolName}`, errorMessage(failed.reason));
+
+    // Per chunk: failed or low-confidence results keep that chunk's original text. An empty answer from
+    // a good call means nothing in that chunk was relevant, as long as some other chunk kept something.
+    // A "high" risk answer is still better than blind truncation, so it's used when the original
+    // wouldn't fit anyway (the note says so, and get_full_result stays available).
+    const wouldTruncate = text.length > (o.truncateAt ?? Infinity);
+    let lowConfidence = false;
+    let originalTokens = 0;
+    let keptTokens = 0;
+    let anyKept = false;
+    const parts = chunks.map((c, i) => {
+      const s = settled[i];
+      const r = s.status === "fulfilled" ? s.value : null;
+      if (r && (r.compression_risk !== "high" || wouldTruncate)) {
+        if (r.compressed_text?.trim()) anyKept = true;
+        if (r.compression_risk === "high") lowConfidence = true;
+        originalTokens += r.original_tokens || 0;
+        keptTokens += r.kept_tokens || 0;
+        return r.compressed_text ?? "";
+      }
+      const est = Math.round(c.length / 4);
+      originalTokens += est;
+      keptTokens += est;
+      return c;
+    });
+    const out = parts.filter((p) => p.trim()).join("\n");
+    if (!anyKept || out.length > text.length * 0.9) {
+      const risky = settled.some((s) => s.status === "fulfilled" && s.value.compression_risk === "high");
+      if (risky) this.app.store.log("system", `Kept the full ${o.toolName} result`, "SuperCompress wasn't confident the shortened version kept everything relevant.");
       return { text, note: null };
     }
+
+    this.remember(o.resultId, text);
+    this.record(originalTokens, keptTokens);
+    const pct = Math.round((1 - keptTokens / Math.max(1, originalTokens)) * 100);
+    const note =
+      `[SuperCompress kept the parts relevant to the current request — ${keptTokens.toLocaleString()} of ${originalTokens.toLocaleString()} tokens (${pct}% smaller); kept lines are verbatim. ` +
+      (lowConfidence ? "Its verifier was less sure than usual this time, but the full result was too long to show anyway. " : "") +
+      `If something you need seems missing, call get_full_result with result_id "${o.resultId}".]`;
+    return { text: out, note };
   }
 
   /** Raw API call; throws on any failure. Used directly by the settings "Test" button. */
-  async call(context: string, query: string, signal?: AbortSignal): Promise<ApiResponse> {
+  async call(context: string, query: string, signal?: AbortSignal, timeoutMs = BACKGROUND_TIMEOUT_MS): Promise<ApiResponse> {
     const key = this.key();
     if (!key) throw new Error("No SuperCompress API key. Add one in Settings → Models → Context compression.");
     const res = await fetch(this.url, {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": key },
       body: JSON.stringify({ context, query: query.slice(0, 4000) }),
-      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]) : AbortSignal.timeout(TIMEOUT_MS),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(this.timeout(timeoutMs))]) : AbortSignal.timeout(this.timeout(timeoutMs)),
     });
     if (!res.ok) {
       const detail = (await res.text().catch(() => "")).slice(0, 200);
@@ -178,6 +223,24 @@ export class Compressor {
 }
 
 class PauseError extends Error {}
+
+/** Split at line boundaries into pieces of at most `max` chars (a longer single line is hard-split). */
+export function splitChunks(text: string, max: number): string[] {
+  if (text.length <= max) return [text];
+  const out: string[] = [];
+  let cur = "";
+  for (const line of text.split("\n")) {
+    for (let i = 0; i < Math.max(1, line.length); i += max) {
+      const piece = line.slice(i, i + max);
+      if (cur && cur.length + 1 + piece.length > max) {
+        out.push(cur);
+        cur = piece;
+      } else cur = cur ? `${cur}\n${piece}` : piece;
+    }
+  }
+  if (cur) out.push(cur);
+  return out;
+}
 
 function dayKey(ts: number) {
   return new Date(ts).toISOString().slice(0, 10);

@@ -137,6 +137,7 @@ Default routing is `anthropic:claude-opus-5-5` for work and `anthropic:claude-ha
 | `TANDEM_ALLOW_PRIVATE_FETCH` | off | Let web tools reach LAN addresses |
 | `ANTHROPIC_API_KEY` etc. | | Provider keys can come from the environment |
 | `SUPERCOMPRESS_API_KEY` | | Turns on context compression ([free key](https://www.supercompress.dev/dashboard)); can also be set in Settings → Models |
+| `SUPERCOMPRESS_TIMEOUT_MS` | `120000` background, `60000` live chat | Per-call budget for the compression API; slower calls fall back to the original |
 
 ## Development
 

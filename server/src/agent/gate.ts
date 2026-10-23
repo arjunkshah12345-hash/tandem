@@ -141,7 +141,7 @@ export async function runTool(tool: Tool, args: Record<string, unknown>, ctx: To
     if (tool.compress ?? !!out.untrusted) {
       const query = `${ctx.query ?? ""}\n\n(Result of ${tool.name}: ${summary})`;
       const interactive = !ctx.background && !ctx.taskId; // a live chat turn the user is waiting on
-      ({ text, note } = await app.compressor.maybeCompress(text, query, { resultId: `res_${callId}`, toolName: tool.name, signal: ctx.signal, interactive }));
+      ({ text, note } = await app.compressor.maybeCompress(text, query, { resultId: `res_${callId}`, toolName: tool.name, signal: ctx.signal, interactive, truncateAt: MAX_RESULT_CHARS }));
     }
     text = truncate(text, MAX_RESULT_CHARS);
     if (out.untrusted) {

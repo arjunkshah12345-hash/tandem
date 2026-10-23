@@ -4,6 +4,7 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { call, makeApp, text, until } from "./helpers.ts";
 import type { Tool } from "../src/tools/types.ts";
+import { splitChunks } from "../src/compress/supercompress.ts";
 
 /** A stand-in for the hosted SuperCompress API: keeps lines mentioning "ERROR". */
 async function fakeSupercompress(opts: { status?: number; risk?: string } = {}) {
@@ -13,6 +14,11 @@ async function fakeSupercompress(opts: { status?: number; risk?: string } = {}) 
     for await (const c of req) raw += c;
     const body = JSON.parse(raw);
     seen.push({ key: req.headers["x-api-key"] as string | undefined, body });
+    if (body.context.length > 120_000) {
+      // The hosted API's real limit.
+      res.writeHead(422, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ detail: "context too long (120k max)" }));
+    }
     if (opts.status && opts.status !== 200) {
       res.writeHead(opts.status, { "content-type": "application/json" });
       return res.end(JSON.stringify({ error: "nope" }));
@@ -164,6 +170,63 @@ test("default scope skips live chat but compresses background tasks", async () =
     await until(() => app.store.getTask(t.id)?.status === "suggested_done", 5000);
     assert.equal(sc.seen.length, 1, "task results are compressed");
     assert.match(sc.seen[0].body.query, /Investigate outage/);
+  } finally {
+    await cleanup();
+    await sc.close();
+  }
+});
+
+test("splitChunks keeps lines whole and every piece under the limit", () => {
+  const text = Array.from({ length: 1000 }, (_, i) => `line ${i} ${"x".repeat(300)}`).join("\n");
+  const parts = splitChunks(text, 115_000);
+  assert.ok(parts.length > 1);
+  assert.ok(parts.every((p) => p.length <= 115_000));
+  assert.equal(parts.join("\n"), text);
+  assert.deepEqual(splitChunks("short", 10), ["short"]);
+  assert.ok(splitChunks("y".repeat(25), 10).every((p) => p.length <= 10));
+});
+
+test("results over the API's 120k limit are compressed in chunks", async () => {
+  const sc = await fakeSupercompress();
+  const HUGE = [...Array.from({ length: 3000 }, (_, i) => `info: row ${i} ${"ok ".repeat(30)}`), "ERROR: shard 7 is read-only"].join("\n");
+  const hugeTool: Tool = { ...logTool, name: "ops__dump", run: async () => ({ text: HUGE, untrusted: true }) };
+  const { app, model, cleanup } = makeApp((_r, n) => (n === 0 ? [call("ops__dump", {}, "c_dump")] : [text("Shard 7 is read-only.")]), [hugeTool]);
+  try {
+    assert.ok(HUGE.length > 240_000);
+    app.vault.set("SUPERCOMPRESS_API_KEY", "sc_live_test_key");
+    app.settings.update({ compression: { enabled: true, minChars: 6000, scope: "all" } });
+    (app.providers as any).adapters.set("fake", model);
+    await app.agent.userMessage("main", "Why are writes failing?");
+    await until(() => !app.agent.isBusy("main") && model.calls.length === 2);
+
+    assert.ok(sc.seen.length >= 3, `expected several chunked calls, got ${sc.seen.length}`);
+    assert.ok(sc.seen.every((r) => r.body.context.length <= 120_000), "no request over the API limit");
+    const result = lastToolResult(model, 1);
+    assert.match(result, /^\[SuperCompress kept the parts relevant/);
+    assert.match(result, /ERROR: shard 7 is read-only/);
+    assert.ok(!result.includes("info: row 10 "), "irrelevant rows dropped");
+    assert.equal(app.compressor.status().today.calls, 1);
+  } finally {
+    await cleanup();
+    await sc.close();
+  }
+});
+
+test("a high-risk answer beats blind truncation, but only when the result is too long to show", async () => {
+  const sc = await fakeSupercompress({ risk: "high" });
+  const LONG = [...Array.from({ length: 700 }, (_, i) => `info: row ${i} ${"ok ".repeat(30)}`), "ERROR: quota exceeded for tenant 42"].join("\n");
+  const longTool: Tool = { ...logTool, name: "ops__long", run: async () => ({ text: LONG, untrusted: true }) };
+  const { app, model, cleanup } = makeApp((_r, n) => (n === 0 ? [call("ops__long", {}, "c_long")] : [text("Tenant 42 is over quota.")]), [longTool]);
+  try {
+    assert.ok(LONG.length > 50_000 && LONG.length < 120_000);
+    app.vault.set("SUPERCOMPRESS_API_KEY", "sc_live_test_key");
+    app.settings.update({ compression: { enabled: true, minChars: 6000, scope: "all" } });
+    (app.providers as any).adapters.set("fake", model);
+    await app.agent.userMessage("main", "Why are requests rejected?");
+    await until(() => !app.agent.isBusy("main") && model.calls.length === 2);
+    const result = lastToolResult(model, 1);
+    assert.match(result, /verifier was less sure/);
+    assert.match(result, /ERROR: quota exceeded for tenant 42/, "the line past the truncation point survives");
   } finally {
     await cleanup();
     await sc.close();

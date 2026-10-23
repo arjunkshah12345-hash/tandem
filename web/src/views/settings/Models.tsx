@@ -323,7 +323,7 @@ function CompressionGroup() {
           </Button>
         </div>
       </Row>
-      <Row label="Where" hint="The hosted model takes up to ~30s per call, so live chat is skipped by default.">
+      <Row label="Where" hint="The hosted model takes about 40–50s per call, so live chat is skipped by default.">
         <Select
           value={c.scope}
           onChange={(v) => save({ compression: { scope: v as "background" | "all" } })}
